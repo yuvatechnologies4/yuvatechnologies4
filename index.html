@@ -25,6 +25,18 @@
         .credit-amount {
             font-weight: bold;
             color: #007bff;
+            font-size: 1.2rem;
+        }
+        .farmer-details {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .farmer-details p {
+            margin: 0;
+            padding: 5px 0;
         }
         input, button {
             margin-bottom: 10px;
@@ -46,11 +58,12 @@
 <body>
     <div class="container">
         <h1 class="my-4">Aqua Tally</h1>
-        <input type="text" id="panInput" class="form-control" placeholder="Enter PAN number of farmer">
+        <input type="text" id="panInput" class="form-control" placeholder="Enter PAN number">
         <div id="farmerInfo" class="mt-4"></div>
         <div id="buttons" class="mt-4 d-none">
             <button id="cancelBtn" class="btn btn-secondary w-100">Cancel</button>
             <button id="giveCreditBtn" class="btn btn-primary w-100">Give Credit</button>
+            <button id="takePaymentBtn" class="btn btn-success w-100">Take Payment</button>
         </div>
     </div>
 
@@ -68,6 +81,25 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" id="okBtn" class="btn btn-primary">Ok</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for payment input -->
+    <div class="modal" tabindex="-1" id="paymentModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Take Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="number" id="paymentAmount" class="form-control" placeholder="Enter payment amount">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="okPaymentBtn" class="btn btn-primary">Ok</button>
                 </div>
             </div>
         </div>
@@ -93,17 +125,21 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Initial data
-            const farmers = [
-                { pan: "abc123", name: "Satish", address: "Bhimavaram", credit: 35000 },
-                { pan: "xyz789", name: "Surya", address: "Rajole", credit: 25000 }
+            function initializeFarmersData() {
+			 const farmers = [
+			{ pan: "abc123", name: "Satish", address: "Bhimavaram", credit: 25000 },
+			{ pan: "xyz123", name: "Prabhas", address: "Eluru", credit: 30000 }
             ];
-            
-            localStorage.setItem("farmers", JSON.stringify(farmers));
+                localStorage.setItem("farmers", JSON.stringify(farmers));
+            }
+
+            initializeFarmersData();
 
             const panInput = document.getElementById("panInput");
             const farmerInfo = document.getElementById("farmerInfo");
             const buttons = document.getElementById("buttons");
             const creditModal = new bootstrap.Modal(document.getElementById('creditModal'));
+            const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
             const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
             let selectedFarmer = null;
 
@@ -115,9 +151,11 @@
                 if (farmer) {
                     selectedFarmer = farmer;
                     farmerInfo.innerHTML = `
-                        <p>Name: ${farmer.name}</p>
-                        <p>Address: ${farmer.address}</p>
-                        <p class="credit-amount">Credit Amount: Rs. ${farmer.credit}</p>
+                        <div class="farmer-details">
+                            <p><strong>Name:</strong> ${farmer.name}</p>
+                            <p><strong>Address:</strong> ${farmer.address}</p>
+                            <p class="credit-amount">Credit Amount: Rs. ${farmer.credit}</p>
+                        </div>
                     `;
                     buttons.classList.remove("d-none");
                 } else {
@@ -146,7 +184,30 @@
                         localStorage.setItem("farmers", JSON.stringify(farmersData));
                     }
                     confirmModal.hide();
-                    alert("Credit addted successfully!");
+                    alert("Credit updated successfully!");
+                    panInput.dispatchEvent(new Event("change"));
+                };
+            });
+
+            document.getElementById("takePaymentBtn").addEventListener("click", function () {
+                paymentModal.show();
+            });
+
+            document.getElementById("okPaymentBtn").addEventListener("click", function () {
+                const amount = parseFloat(document.getElementById("paymentAmount").value);
+                document.getElementById("confirmationText").innerText = `You are receiving Rs.${amount} from ${selectedFarmer.name} from ${selectedFarmer.address}`;
+                paymentModal.hide();
+                confirmModal.show();
+
+                document.getElementById("confirmBtn").onclick = function () {
+                    const farmersData = JSON.parse(localStorage.getItem("farmers")) || [];
+                    const farmerIndex = farmersData.findIndex(f => f.pan === selectedFarmer.pan);
+                    if (farmerIndex !== -1) {
+                        farmersData[farmerIndex].credit -= amount;
+                        localStorage.setItem("farmers", JSON.stringify(farmersData));
+                    }
+                    confirmModal.hide();
+                    alert("Payment updated successfully!");
                     panInput.dispatchEvent(new Event("change"));
                 };
             });
